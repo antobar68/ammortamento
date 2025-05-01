@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Piano di Ammortamento</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+    }
+    label, input, select {
+      display: block;
+      margin: 10px 0;
+    }
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+      padding: 5px;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+    }
+    canvas {
+      margin-top: 30px;
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>Piano di Ammortamento a Rata Costante</h1>
+  <form id="loanForm">
+    <label>Capitale:</label>
+    <input type="number" id="capitale" required>
+
+    <label>Tasso di interesse annuale (%):</label>
+    <input type="number" id="tasso" step="0.01" required>
+
+    <label>Durata (anni):</label>
+    <input type="number" id="anni" required>
+
+    <label>Frequenza rata:</label>
+    <select id="frequenza">
+      <option value="12">Mensile</option>
+      <option value="4">Trimestrale</option>
+    </select>
+
+    <button type="submit">Calcola</button>
+  </form>
+
+  <div id="risultato"></div>
+  <canvas id="grafico"></canvas>
+
+  <script>
+    document.getElementById("loanForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const capitale = parseFloat(document.getElementById("capitale").value);
+      const tassoAnnuo = parseFloat(document.getElementById("tasso").value);
+      const anni = parseInt(document.getElementById("anni").value);
+      const freq = parseInt(document.getElementById("frequenza").value);
+
+      const n = anni * freq;
+      const i = (tassoAnnuo / 100) / freq;
+      const rata = capitale * (i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1);
+
+      let residuo = capitale;
+      let data = "<table><tr><th>Rata</th><th>Quota Capitale</th><th>Quota Interessi</th><th>Rata</th><th>Residuo</th></tr>";
+      let residui = [];
+
+      for (let k = 1; k <= n; k++) {
+        const interesse = residuo * i;
+        const quotaCapitale = rata - interesse;
+        residuo -= quotaCapitale;
+        residui.push(Math.max(residuo, 0));
+        data += `<tr><td>${k}</td><td>${quotaCapitale.toFixed(2)}</td><td>${interesse.toFixed(2)}</td><td>${rata.toFixed(2)}</td><td>${Math.max(residuo, 0).toFixed(2)}</td></tr>`;
+      }
+
+      data += "</table>";
+      document.getElementById("risultato").innerHTML = data;
+
+      const ctx = document.getElementById('grafico').getContext('2d');
+      if (window.chart) window.chart.destroy();
+      window.chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Array.from({length: n}, (_, i) => i + 1),
+          datasets: [{
+            label: 'Capitale Residuo',
+            data: residui,
+            fill: false,
+            borderColor: 'blue',
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true }
+          },
+          scales: {
+            x: { title: { display: true, text: 'Numero Rata' } },
+            y: { title: { display: true, text: 'Residuo' } }
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
